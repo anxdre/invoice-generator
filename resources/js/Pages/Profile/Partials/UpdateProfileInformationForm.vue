@@ -4,6 +4,9 @@ import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Link, useForm, usePage } from '@inertiajs/vue3';
+import { Button } from "@/Components/ui/button";
+import axios from "axios";
+import { toast } from "vue-sonner";
 
 defineProps<{
     mustVerifyEmail?: Boolean;
@@ -15,7 +18,51 @@ const user = usePage().props.auth.user;
 const form = useForm({
     name: user.name,
     email: user.email,
+    img_url: user.img_url,
+    img_file: undefined
 });
+
+const submit = () => {
+    form.transform((data) => {
+        return {
+            name: data.name,
+            email: data.email,
+            img_url: data.img_url, // hasil upload
+        };
+    });
+
+    form.patch(route('profile.update'));
+};
+
+const handleFile = (e) => {
+    form.img_file = e.target.files[0];
+
+    // preview sebelum upload
+    form.img_url = URL.createObjectURL( form.img_file);
+};
+
+const uploadImage = async () => {
+    if (!form.img_file) {
+        toast.warning('Foto belum dipilih')
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("image", form.img_file);
+
+    try {
+        const res = await axios.post(route('picture.upload'), formData, {
+            headers: { "Content-Type": "multipart/form-data" }
+        });
+
+        // pakai URL dari server
+        form.img_url = res.data.url;
+
+        console.log("Foto profil:", res.data.url);
+    } catch (err) {
+        toast.error('gambar gagal di upload')
+    }
+};
 </script>
 
 <template>
@@ -28,7 +75,19 @@ const form = useForm({
             </p>
         </header>
 
-        <form @submit.prevent="form.patch(route('profile.update'))" class="mt-6 space-y-6">
+        <div>
+            <img
+                :src="form.img_url"
+                alt="Foto Profil"
+                style="aspect-ratio: 1/1;width: 200px; border:1px solid #ccc"
+            />
+            <div class="border mt-2 p-2">
+                <input type="file" @change="handleFile">
+                <Button type="button" class="bg-black text-white" @click="uploadImage">Upload Foto Profil</Button>
+            </div>
+        </div>
+
+        <form @submit.prevent="submit()" class="mt-6 space-y-6">
             <div>
                 <InputLabel for="name" value="Name" />
 

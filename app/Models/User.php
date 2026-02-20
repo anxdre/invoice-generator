@@ -20,7 +20,11 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'address',
+        'logo',
+        'phone',
         'password',
+        'img_url'
     ];
 
     /**
@@ -42,4 +46,9 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class, 'user_id', 'id');
+    }
 }
