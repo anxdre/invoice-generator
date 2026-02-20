@@ -7,7 +7,7 @@ import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 import { Link } from '@inertiajs/vue3';
 import 'vue-sonner/style.css'
-import { Toaster } from '@/components/ui/sonner'
+import { Toaster } from '@/Components/ui/sonner'
 
 const showingNavigationDropdown = ref(false);
 </script>
