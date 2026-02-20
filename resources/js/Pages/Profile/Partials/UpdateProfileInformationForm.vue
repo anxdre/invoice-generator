@@ -57,8 +57,7 @@ const uploadImage = async () => {
 
         // pakai URL dari server
         form.img_url = res.data.url;
-
-        console.log("Foto profil:", res.data.url);
+        toast.success('gambar berhasil di upload, silahkan klik save untuk menyimpan perubahan')
     } catch (err) {
         toast.error('gambar gagal di upload')
     }

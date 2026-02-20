@@ -105,7 +105,22 @@ function saveInvoice() {
 }
 
 function exportInvoice() {
-    window.open(route('invoices.export', invoiceData.value.id), '_blank')
+    Swal.fire({
+        title: "Select languange",
+        showDenyButton: true,
+        showCancelButton: true,
+        confirmButtonText: "Indonesia",
+        denyButtonText: `English`,
+        confirmButtonColor: "#f69f0a",
+        denyButtonColor: "#000",
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.open(route('invoices.export', { id: invoiceData.value.id, lang: 'id' }), '_blank')
+        } else if (result.isDenied) {
+            window.open(route('invoices.export', { id: invoiceData.value.id, lang: 'en' }), '_blank')
+        }
+    });
+
 }
 
 watch(invoiceData.value.invoice_details, () => {
@@ -114,7 +129,7 @@ watch(invoiceData.value.invoice_details, () => {
         total += value.total_price;
     })
     invoiceData.value.total = total;
-    invoiceData.value.total_payment = invoiceData.value.total - ((invoiceData.value.tax ?? 0 / 100) * invoiceData.value.total);
+    invoiceData.value.total_payment = invoiceData.value.total + ((invoiceData.value.tax ?? 0 / 100) * invoiceData.value.total);
 }, { deep: true })
 
 onMounted(() => {
@@ -150,7 +165,7 @@ onMounted(() => {
                 <Card>
                     <CardContent class="overflow-scroll border m-5 rounded p-5">
                         <div class="w-full flex flex-col md:flex-row justify-between items-center pb-4">
-                            <div class="flex flex-row flex-1">
+                            <div class="flex flex-col md:flex-row flex-1">
                                 <img :src=" $attrs.auth?.user.img_url" class="aspect-square w-[200px]">
                                 <div class="flex flex-col w-full px-2">
                                     <p class="font-bold text-xl md:text-3xl underline">{{ $attrs.auth?.user.name }}</p>
@@ -182,10 +197,10 @@ onMounted(() => {
                                                   v-model="invoiceData.recipient_address" type="text"
                                                   placeholder="Recipient Address"/>
                                         <p class="text-sm" v-else>{{ invoiceData.recipient_address }}</p>
-                                        <Input class="mt-1" v-if="state.isEdit" v-model="invoiceData.payment_number"
+                                        <Input class="mt-1" v-if="state.isEdit" v-model="invoiceData.recipient_number"
                                                type="text"
                                                placeholder="Recipient Phone"/>
-                                        <p class="text-sm" v-else>{{ invoiceData.payment_number || '' }}</p>
+                                        <p class="text-sm" v-else>{{ invoiceData.recipient_number || '' }}</p>
                                     </div>
                                 </div>
                                 <div class="flex flex-row  border">
@@ -193,7 +208,7 @@ onMounted(() => {
                                         <span
                                             class="text-white px-1 text-nowrap  flex-1 w-full">Invoice Number : </span>
                                         <span class="text-nowrap  text-white px-1  flex-1 w-full">Date : </span>
-                                        <span v-if="invoiceData.paid == false && invoiceData.due_date"
+                                        <span v-if="invoiceData.paid == false"
                                               class="text-nowrap  text-white px-1 bg-red-500 flex-1 w-full">Due Date : </span>
                                         <span class="text-nowrap  text-white px-1 flex-1 w-full">Status : </span>
                                     </div>
@@ -239,9 +254,9 @@ onMounted(() => {
                                                 <Calendar v-model="invoiceData.due_date" initial-focus/>
                                             </PopoverContent>
                                         </Popover>
-                                        <span v-if="!state.isEdit && invoiceData.due_date"
+                                        <span v-if="!state.isEdit"
                                               class=" flex-1 border-t  px-1"
-                                        >{{ invoiceData.due_date }}</span>
+                                        >{{ invoiceData.due_date || '-' }}</span>
                                         <Select v-if="state.isEdit" v-model="invoiceData.paid">
                                             <SelectTrigger class="w-full">
                                                 <SelectValue placeholder="Select a status"/>
@@ -343,8 +358,8 @@ onMounted(() => {
                                         <TableCell class="text-center" colspan="7">Empty Data,..</TableCell>
                                     </TableRow>
                                     <table-row>
-                                        <table-cell class="bg-black border-black border" colspan="5">
-                                            <span class="text-white font-bold text-xl">Total</span>
+                                        <table-cell class=" border-black border" colspan="5">
+                                            <span class="text-black font-bold text-xl">Total</span>
                                         </table-cell>
                                         <table-cell class="border border-black" colspan="2">
                                             <span
@@ -354,12 +369,12 @@ onMounted(() => {
                                         </table-cell>
                                     </table-row>
                                     <table-row>
-                                        <table-cell class="bg-black border-black border !py-0" colspan="5">
-                                            <span class="text-white font-bold text-xl">Tax</span>
+                                        <table-cell class=" border-black border !py-0" colspan="5">
+                                            <span class="text-black font-bold text-xl">Tax</span>
                                         </table-cell>
                                         <table-cell class="border border-black !p-0" colspan="2">
                                             <div class="flex items-stretch">
-                                                <div class="bg-red-500 text-white px-3 flex items-center">
+                                                <div class="bg-red-500 text-black px-3 flex items-center">
                                                     <span>%</span>
                                                 </div>
 
@@ -367,18 +382,18 @@ onMounted(() => {
                                                     type="number"
                                                     class="flex-1 border-0 rounded-none"
                                                     v-model="invoiceData.tax"
-                                                    @update:modelValue="()=>{invoiceData.total_payment = invoiceData.total - ((invoiceData.tax / 100) * invoiceData.total)}"
+                                                    @update:modelValue="()=>{invoiceData.total_payment = invoiceData.total + ((invoiceData.tax / 100) * invoiceData.total)}"
                                                     placeholder="Invoice Tax"
                                                 />
                                             </div>
                                         </table-cell>
                                     </table-row>
                                     <table-row>
-                                        <table-cell class="bg-black border-black border" colspan="5">
-                                            <span class="text-white font-bold text-xl">Total Tax</span>
+                                        <table-cell class=" border-black border" colspan="5">
+                                            <span class="text-black font-bold text-xl">Total Tax</span>
                                         </table-cell>
-                                        <table-cell class=" bg-red-500 border border-black text-white" colspan="2">
-                                            <div class="flex items-stretch font-bold text-lg"> -
+                                        <table-cell class=" border-black text-black" colspan="2">
+                                            <div class="flex items-stretch font-bold text-lg"> +
                                                 {{ idrFormat((invoiceData.tax / 100) * invoiceData.total) }}
                                             </div>
                                         </table-cell>
@@ -392,6 +407,15 @@ onMounted(() => {
                                                 class="font-bold text-lg text-end">{{
                                                     idrFormat(invoiceData.total_payment)
                                                 }}</span>
+                                        </table-cell>
+                                    </table-row>
+                                    <table-row>
+                                        <table-cell class=" border-black border bg-black" colspan="5">
+                                            <span class="text-white font-bold text-xl">Payment To</span>
+                                        </table-cell>
+                                        <table-cell class="border border-black" colspan="2">
+                                            <Input type="text" placeholder="Payment Method"
+                                                   v-model="invoiceData.payment_number"/>
                                         </table-cell>
                                     </table-row>
                                 </TableBody>
@@ -421,8 +445,8 @@ onMounted(() => {
                                         <TableCell class="text-center" colspan="7">Empty Data,..</TableCell>
                                     </TableRow>
                                     <table-row>
-                                        <table-cell class="bg-black border-black border" colspan="5">
-                                            <span class="text-white font-bold text-xl">Total Payment</span>
+                                        <table-cell class=" border-black border" colspan="5">
+                                            <span class="text-black font-bold text-xl">Total Payment</span>
                                         </table-cell>
                                         <table-cell class="border border-black" colspan="2">
                                             <span
@@ -432,8 +456,8 @@ onMounted(() => {
                                         </table-cell>
                                     </table-row>
                                     <table-row>
-                                        <table-cell class="bg-black border-black border !py-0" colspan="5">
-                                            <span class="text-white font-bold text-xl">Tax</span>
+                                        <table-cell class=" border-black border !py-0" colspan="5">
+                                            <span class="text-black font-bold text-xl">Tax</span>
                                         </table-cell>
                                         <table-cell class="border border-black !p-0" colspan="2">
                                             <div class="flex items-stretch">
@@ -453,8 +477,8 @@ onMounted(() => {
                                         </table-cell>
                                     </table-row>
                                     <table-row>
-                                        <table-cell class="bg-black border-black border" colspan="5">
-                                            <span class="text-white font-bold text-xl">Total Tax</span>
+                                        <table-cell class=" border-black border" colspan="5">
+                                            <span class="text-black font-bold text-xl">Total Tax</span>
                                         </table-cell>
                                         <table-cell class=" bg-red-500 border border-black text-white" colspan="2">
                                             <div class="flex items-stretch font-bold text-lg"> -
@@ -463,14 +487,22 @@ onMounted(() => {
                                         </table-cell>
                                     </table-row>
                                     <table-row>
-                                        <table-cell class=" border-black border bg-black" colspan="5">
-                                            <span class="text-white font-bold text-xl">Total Payment</span>
+                                        <table-cell class=" border-black border " colspan="5">
+                                            <span class="text-black font-bold text-xl">Total Payment</span>
                                         </table-cell>
                                         <table-cell class="border border-black bg-green-500 text-white" colspan="2">
                                             <span
                                                 class="font-bold text-lg text-end">{{
                                                     idrFormat(invoiceData.total_payment)
                                                 }}</span>
+                                        </table-cell>
+                                    </table-row>
+                                    <table-row>
+                                        <table-cell class=" border-black border" colspan="5">
+                                            <span class="text-black font-bold text-xl">Payment To</span>
+                                        </table-cell>
+                                        <table-cell class="border border-black" colspan="2">
+                                            {{ invoiceData.payment_number || '-' }}
                                         </table-cell>
                                     </table-row>
                                 </TableBody>

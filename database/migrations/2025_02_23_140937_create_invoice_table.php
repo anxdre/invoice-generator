@@ -22,6 +22,7 @@ return new class extends Migration
             $table->time('payment_date')->nullable();
             $table->string('to');
             $table->string('recipient_address');
+            $table->string('recipient_number')->nullable();
             $table->decimal('total');
             $table->decimal('total_payment');
             $table->integer('tax')->default(0);

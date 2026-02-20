@@ -70,7 +70,8 @@ class InvoiceController extends Controller
                 'payment_number' => $request->payment_number ?? null,
                 'total_payment' => $request->total_payment ?? null,
                 'tax' => $request->tax ?? 0,
-                'due_date' => $request->due_date ? Carbon::parse($request->due_date)->format('d-m-Y') : null
+                'due_date' => $request->due_date ? Carbon::parse($request->due_date)->format('d-m-Y') : null,
+                'recipient_number' => $request->recipient_number ?? null,
             ]);
 
             if ($request->invoice_details) {
@@ -113,7 +114,7 @@ class InvoiceController extends Controller
     }
 
     #[Get('/export/{id}', name: '.export')]
-    public function pdf($id)
+    public function pdf($id,Request $request)
     {
         if (!$id){
             return redirect()->back();
@@ -128,7 +129,16 @@ class InvoiceController extends Controller
             });
         }
 
-        $pdf = Pdf::loadView('exportpdf', compact('invoice','company'));
-        return $pdf->download("invoice-$id.pdf");
+        $pdf = null;
+        if ($request->lang == 'en'){
+            $pdf = Pdf::loadView('exportpdf-en', compact('invoice','company'));
+        }
+
+        if ($request->lang = 'id'){
+            $pdf = Pdf::loadView('exportpdf-id', compact('invoice','company'));
+        }
+
+        //        return View('exportpdf', compact('invoice','company'));
+        return $pdf->download("invoice-$invoice->invoice_number.pdf");
     }
 }
