@@ -15,7 +15,7 @@ import { onMounted, ref, watch } from "vue";
 import { Input } from "@/Components/ui/input";
 import { Textarea } from "@/Components/ui/textarea";
 import axios from "axios";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue, } from '@/components/ui/select'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue, } from '@/Components/ui/select'
 import { toast } from "vue-sonner";
 import Swal from "sweetalert2";
 
