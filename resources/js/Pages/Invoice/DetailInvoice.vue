@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 import { CardContent, CardFooter, CardHeader, CardTitle } from "@/Components/ui/card";
-import { ArrowLeft, EyeIcon, TrashIcon } from "lucide-vue-next";
+import { ArrowLeft } from "lucide-vue-next";
 import { Button } from "@/Components/ui/button";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import Card from "../../Components/ui/card/Card.vue";
