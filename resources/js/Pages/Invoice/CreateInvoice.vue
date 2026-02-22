@@ -479,8 +479,8 @@ onMounted(() => {
                                         <table-cell class=" border-black border" colspan="5">
                                             <span class="text-black font-bold text-xl">Total Tax</span>
                                         </table-cell>
-                                        <table-cell class=" bg-red-500 border border-black text-white" colspan="2">
-                                            <div class="flex items-stretch font-bold text-lg"> -
+                                        <table-cell class=" border border-black text-white" colspan="2">
+                                            <div class="flex items-stretch font-bold text-lg"> +
                                                 {{ idrFormat((invoiceData.tax / 100) * invoiceData.total) }}
                                             </div>
                                         </table-cell>
