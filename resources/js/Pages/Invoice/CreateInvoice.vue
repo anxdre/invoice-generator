@@ -100,11 +100,11 @@ function saveInvoice() {
                 icon: "success"
             });
         }).catch(err => {
-            const errors = err.response.data.errors;
-            Object.values(errors).flat().forEach(error => {
-                toast.error(error)
-            })
+        const errors = err.response.data.errors;
+        Object.values(errors).flat().forEach(error => {
+            toast.error(error)
         })
+    })
 }
 
 function exportInvoice() {
@@ -147,7 +147,7 @@ onMounted(() => {
         invoiceData.value.category = copyData.invoice_number?.split('-').shift()
     }
 
-    if (props.category){
+    if (props.category) {
         invoiceData.value.category = props.category
     }
 
@@ -160,17 +160,18 @@ onMounted(() => {
 
 <template>
 
-    <Head title="Detail Invoice" />
+    <Head title="Detail Invoice"/>
 
     <AuthenticatedLayout class="relative">
         <template #header>
             <div class="inline-flex gap-4 items-center">
                 <Button @click="router.get(route('dashboard'))" class="hover:bg-gray-200" variant="outline">
-                    <ArrowLeft class="size-5" />
+                    <ArrowLeft class="size-5"/>
                 </Button>
                 <h2 v-if="state.isEdit" class="font-semibold text-xl text-gray-800 leading-tight">Create New
-                    Invoice</h2>
-                <h2 v-else class="font-semibold text-xl text-gray-800 leading-tight">Detail Invoice</h2>
+                    {{ invoiceData.category == 'INV' ? 'Invoice' : 'Purchase Order' }}</h2>
+                <h2 v-else class="font-semibold text-xl text-gray-800 leading-tight">Detail
+                    {{ invoiceData.category == 'INV' ? 'Invoice' : 'Purchase Order' }}</h2>
             </div>
         </template>
 
@@ -192,7 +193,8 @@ onMounted(() => {
                             <div class="flex flex-col gap-2 w-full md:w-fit">
                                 <div class="w-full mt-6 mr-6 bg-black text-white pl-1 text-center md:text-start">
                                     <p v-if="invoiceData.category == 'INV'" class="font-bold text-3xl">INVOICE</p>
-                                    <p v-else-if="invoiceData.category == 'PO'" class="font-bold text-3xl">Purchase Order</p>
+                                    <p v-else-if="invoiceData.category == 'PO'" class="font-bold text-3xl">Purchase
+                                        Order</p>
                                     <p v-else class="font-bold text-3xl">INVOICE</p>
                                 </div>
                             </div>
@@ -206,73 +208,79 @@ onMounted(() => {
                                     </div>
                                     <div class="p-2">
                                         <Input v-if="state.isEdit" v-model="invoiceData.to"
-                                            placeholder="Receipent name" />
+                                               placeholder="Receipent name"/>
                                         <p v-else class="font-bold text-lg underline">{{ invoiceData.to }}</p>
                                         <Textarea class="mt-1" v-if="state.isEdit"
-                                            v-model="invoiceData.recipient_address" type="text"
-                                            placeholder="Recipient Address" />
+                                                  v-model="invoiceData.recipient_address" type="text"
+                                                  placeholder="Recipient Address"/>
                                         <p class="text-sm" v-else>{{ invoiceData.recipient_address }}</p>
                                         <Input class="mt-1" v-if="state.isEdit" v-model="invoiceData.recipient_number"
-                                            type="text" placeholder="Recipient Phone" />
+                                               type="text" placeholder="Recipient Phone"/>
                                         <p class="text-sm" v-else>{{ invoiceData.recipient_number || '' }}</p>
                                     </div>
                                 </div>
                                 <div class="flex flex-row  border">
                                     <div class="flex flex-col bg-black">
-                                        <span v-if="invoiceData.category == 'INV'" class="text-white px-1 text-nowrap  flex-1 w-full">Invoice Number :
+                                        <span v-if="invoiceData.category == 'INV'"
+                                              class="text-white px-1 text-nowrap  flex-1 w-full">Invoice Number :
                                         </span>
                                         <span v-else class="text-white px-1 text-nowrap  flex-1 w-full">PO Number :
                                         </span>
                                         <span class="text-nowrap  text-white px-1  flex-1 w-full">Date : </span>
                                         <span v-if="invoiceData.paid == false && invoiceData.category == 'INV'"
-                                            class="text-nowrap  text-white px-1 bg-red-500 flex-1 w-full">Due Date :
+                                              class="text-nowrap  text-white px-1 bg-red-500 flex-1 w-full">Due Date :
                                         </span>
-                                        <span v-if="invoiceData.category == 'INV'" class="text-nowrap  text-white px-1 flex-1 w-full">Status : </span>
+                                        <span v-if="invoiceData.category == 'INV'"
+                                              class="text-nowrap  text-white px-1 flex-1 w-full">Status : </span>
                                     </div>
                                     <div class="flex flex-col">
                                         <span class="md:self-end flex-1 text-nowrap  px-1">{{
-                                            invoiceData.invoice_number || '-'
-                                        }}</span>
+                                                invoiceData.invoice_number || '-'
+                                            }}</span>
                                         <Popover v-if="state.isEdit">
                                             <PopoverTrigger as-child>
                                                 <Button class="w-full rounded-0 border-t" :class="cn(
                                                     ' justify-start text-left font-normal',
                                                     !invoiceData.invoice_date && 'text-muted-foreground',
                                                 )">
-                                                    <CalendarIcon class="mr-2 h-4 w-4" />
+                                                    <CalendarIcon class="mr-2 h-4 w-4"/>
                                                     {{
                                                         invoiceData.invoice_date ? df.format(invoiceData.invoice_date.toDate(getLocalTimeZone())) : "Pick a date"
                                                     }}
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent class="w-auto p-0">
-                                                <Calendar v-model="invoiceData.invoice_date" initial-focus />
+                                                <Calendar v-model="invoiceData.invoice_date" initial-focus/>
                                             </PopoverContent>
                                         </Popover>
-                                        <span class=" flex-1 border-t  px-1" v-else>{{ invoiceData.invoice_date
+                                        <span class=" flex-1 border-t  px-1" v-else>{{
+                                                invoiceData.invoice_date
                                             }}</span>
-                                        <Popover v-if="state.isEdit && invoiceData.paid == false && invoiceData.category == 'INV'">
+                                        <Popover
+                                            v-if="state.isEdit && invoiceData.paid == false && invoiceData.category == 'INV'">
                                             <PopoverTrigger as-child>
                                                 <Button class="w-full rounded-0 border-t" :class="cn(
                                                     ' justify-start text-left font-normal',
                                                     !invoiceData.due_date && 'text-muted-foreground',
                                                 )">
-                                                    <CalendarIcon class="mr-2 h-4 w-4" />
+                                                    <CalendarIcon class="mr-2 h-4 w-4"/>
                                                     {{
                                                         invoiceData.due_date ? df.format(invoiceData.due_date.toDate(getLocalTimeZone())) : "Pick a date"
                                                     }}
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent class="w-auto p-0">
-                                                <Calendar v-model="invoiceData.due_date" initial-focus />
+                                                <Calendar v-model="invoiceData.due_date" initial-focus/>
                                             </PopoverContent>
                                         </Popover>
-                                        <span v-if="!state.isEdit  && invoiceData.category == 'INV'" class=" flex-1 border-t  px-1">{{
-                                            invoiceData.due_date || '-'
+                                        <span v-if="!state.isEdit  && invoiceData.category == 'INV'"
+                                              class=" flex-1 border-t  px-1">{{
+                                                invoiceData.due_date || '-'
                                             }}</span>
-                                        <Select v-if="state.isEdit && invoiceData.category == 'INV'" v-model="invoiceData.paid">
+                                        <Select v-if="state.isEdit && invoiceData.category == 'INV'"
+                                                v-model="invoiceData.paid">
                                             <SelectTrigger class="w-full">
-                                                <SelectValue placeholder="Select a status" />
+                                                <SelectValue placeholder="Select a status"/>
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectGroup>
@@ -285,17 +293,19 @@ onMounted(() => {
                                                 </SelectGroup>
                                             </SelectContent>
                                         </Select>
-                                        <span  v-if="!state.isEdit && invoiceData.category == 'INV'" class="w-full px-1 text-white font-bold"
-                                            :class="invoiceData.paid ? 'bg-green-500' : 'bg-red-500'">{{
-                                            invoiceData.paid
-                                            ? 'Paid' : 'Unpaid' }}</span>
+                                        <span v-if="!state.isEdit && invoiceData.category == 'INV'"
+                                              class="w-full px-1 text-white font-bold"
+                                              :class="invoiceData.paid ? 'bg-green-500' : 'bg-red-500'">{{
+                                                invoiceData.paid
+                                                    ? 'Paid' : 'Unpaid'
+                                            }}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="flex flex-col w-full mt-12 gap-2">
                             <Button v-if="state.isEdit" class="bg-amber-500 text-white" @click="addItem()">
-                                <PlusCircleIcon class="size-5" />
+                                <PlusCircleIcon class="size-5"/>
                                 Add Item
                             </Button>
                             <Table class="w-[1000px] md:w-full border border-black">
@@ -320,16 +330,16 @@ onMounted(() => {
                                 </TableHeader>
                                 <TableBody v-if="state.isEdit">
                                     <TableRow v-for="(item, index) in invoiceData.invoice_details"
-                                        v-if="invoiceData.invoice_details.length != 0">
+                                              v-if="invoiceData.invoice_details.length != 0">
                                         <TableCell class="text-center font-medium">
                                             {{ index + 1 }}
                                         </TableCell>
                                         <TableCell>
                                             <Input class="w-full" v-model="item.item_name" required
-                                                placeholder="Item Name" />
+                                                   placeholder="Item Name"/>
                                         </TableCell>
                                         <TableCell>
-                                            <Input class="w-full" v-model="item.item_code" placeholder="Item Code" />
+                                            <Input class="w-full" v-model="item.item_code" placeholder="Item Code"/>
                                         </TableCell>
                                         <TableCell class="p-1">
                                             <div
@@ -343,24 +353,24 @@ onMounted(() => {
                                                         const raw = val.replace(/[^0-9]/g, '')
                                                         item.item_price = raw ? Number(raw) : 0
                                                         item.total_price = calculateTotal(item.item_qty, item.item_price)
-                                                    }" placeholder="Item Price" />
+                                                    }" placeholder="Item Price"/>
                                             </div>
                                         </TableCell>
                                         <TableCell class="text-center">
                                             <Input class="w-24 justify-self-center " v-model="item.item_qty"
-                                                type="number"
-                                                @update:modelValue="() => { item.total_price = calculateTotal(item.item_qty, item.item_price) }"
-                                                required placeholder="Item Quantity" />
+                                                   type="number"
+                                                   @update:modelValue="() => { item.total_price = calculateTotal(item.item_qty, item.item_price) }"
+                                                   required placeholder="Item Quantity"/>
                                         </TableCell>
                                         <TableCell class="text-center">
                                             <span class="font-bold text-lg text-center w-full block">{{
-                                                idrFormat(item.total_price)
-                                            }}</span>
+                                                    idrFormat(item.total_price)
+                                                }}</span>
                                         </TableCell>
                                         <TableCell>
                                             <Button @click="invoiceData.invoice_details.splice(index, 1)"
-                                                class="bg-destructive text-white w-full">
-                                                <TrashIcon class="size-4" />
+                                                    class="bg-destructive text-white w-full">
+                                                <TrashIcon class="size-4"/>
                                             </Button>
                                         </TableCell>
                                     </TableRow>
@@ -373,8 +383,8 @@ onMounted(() => {
                                         </table-cell>
                                         <table-cell class="border border-black" colspan="2">
                                             <span class="font-bold text-lg text-end">{{
-                                                idrFormat(invoiceData.total)
-                                            }}</span>
+                                                    idrFormat(invoiceData.total)
+                                                }}</span>
                                         </table-cell>
                                     </table-row>
                                     <table-row>
@@ -388,9 +398,9 @@ onMounted(() => {
                                                 </div>
 
                                                 <Input type="number" class="flex-1 border-0 rounded-none"
-                                                    v-model="invoiceData.tax"
-                                                    @update:modelValue="() => { invoiceData.total_payment = invoiceData.total + ((invoiceData.tax / 100) * invoiceData.total) }"
-                                                    placeholder="Invoice Tax" />
+                                                       v-model="invoiceData.tax"
+                                                       @update:modelValue="() => { invoiceData.total_payment = invoiceData.total + ((invoiceData.tax / 100) * invoiceData.total) }"
+                                                       placeholder="Invoice Tax"/>
                                             </div>
                                         </table-cell>
                                     </table-row>
@@ -410,8 +420,8 @@ onMounted(() => {
                                         </table-cell>
                                         <table-cell class="border border-black bg-green-500 text-white" colspan="2">
                                             <span class="font-bold text-lg text-end">{{
-                                                idrFormat(invoiceData.total_payment)
-                                            }}</span>
+                                                    idrFormat(invoiceData.total_payment)
+                                                }}</span>
                                         </table-cell>
                                     </table-row>
                                     <table-row v-if="invoiceData.category == 'INV'">
@@ -420,14 +430,14 @@ onMounted(() => {
                                         </table-cell>
                                         <table-cell class="border border-black" colspan="2">
                                             <Input type="text" placeholder="Payment Method"
-                                                v-model="invoiceData.payment_number" />
+                                                   v-model="invoiceData.payment_number"/>
                                         </table-cell>
                                     </table-row>
                                 </TableBody>
 
                                 <TableBody v-else>
                                     <TableRow v-for="(item, index) in invoiceData.invoice_details"
-                                        v-if="invoiceData.invoice_details.length != 0">
+                                              v-if="invoiceData.invoice_details.length != 0">
                                         <TableCell class="text-center font-medium">
                                             {{ index + 1 }}
                                         </TableCell>
@@ -456,8 +466,8 @@ onMounted(() => {
                                         </table-cell>
                                         <table-cell class="border border-black" colspan="2">
                                             <span class="font-bold text-lg text-center w-full block">{{
-                                                idrFormat(invoiceData.total)
-                                            }}</span>
+                                                    idrFormat(invoiceData.total)
+                                                }}</span>
                                         </table-cell>
                                     </table-row>
                                     <table-row>
@@ -471,9 +481,9 @@ onMounted(() => {
                                                 </div>
 
                                                 <Input type="number" class="flex-1 border-0 rounded-none"
-                                                    v-model="invoiceData.tax"
-                                                    @update:modelValue="() => { invoiceData.total_payment = invoiceData.total - ((invoiceData.tax / 100) * invoiceData.total) }"
-                                                    placeholder="Invoice Tax" readonly />
+                                                       v-model="invoiceData.tax"
+                                                       @update:modelValue="() => { invoiceData.total_payment = invoiceData.total - ((invoiceData.tax / 100) * invoiceData.total) }"
+                                                       placeholder="Invoice Tax" readonly/>
                                             </div>
                                         </table-cell>
                                     </table-row>
@@ -493,8 +503,8 @@ onMounted(() => {
                                         </table-cell>
                                         <table-cell class="border border-black bg-green-500 text-white" colspan="2">
                                             <span class="font-bold text-lg text-end">{{
-                                                idrFormat(invoiceData.total_payment)
-                                            }}</span>
+                                                    idrFormat(invoiceData.total_payment)
+                                                }}</span>
                                         </table-cell>
                                     </table-row>
                                     <table-row v-if="invoiceData.category == 'INV'">
@@ -509,16 +519,17 @@ onMounted(() => {
                             </Table>
                         </div>
                         <div class="outline-dashed outline-1 outline-gray-400 rounded-full mt-4"></div>
-                        <p class="text-sm font-light">*This {{ invoiceData.category == 'INV' ? 'invoice' : 'PO' }} generated by system, Manual signature is not
+                        <p class="text-sm font-light">*This {{ invoiceData.category == 'INV' ? 'invoice' : 'PO' }}
+                            generated by system, Manual signature is not
                             necessary</p>
                     </CardContent>
                     <CardFooter class="block">
                         <Button v-if="state.isEdit" class="bg-green-500 text-white w-full mt-5" @click="confirmSave()">
-                            <SaveIcon class="size-5" />
+                            <SaveIcon class="size-5"/>
                             Save Invoice
                         </Button>
                         <Button v-else class="bg-black text-white w-full mt-5" @click="exportInvoice()">
-                            <PrinterIcon class="size-5" />
+                            <PrinterIcon class="size-5"/>
                             Export Invoice
                         </Button>
                     </CardFooter>
