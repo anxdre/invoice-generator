@@ -157,7 +157,7 @@
                 <td width="50%" class="box">
                     <table width="100%">
                         <tr>
-                            <td class="bg-black" style="font-weight: bold">Invoice Number</td>
+                            <td class="bg-black" style="font-weight: bold">PO Number</td>
                             <td>{{ $invoice->invoice_number }}</td>
                         </tr>
                         <tr>

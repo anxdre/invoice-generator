@@ -219,7 +219,9 @@ onMounted(() => {
                                 </div>
                                 <div class="flex flex-row  border">
                                     <div class="flex flex-col bg-black">
-                                        <span class="text-white px-1 text-nowrap  flex-1 w-full">Invoice Number :
+                                        <span v-if="invoiceData.category == 'INV'" class="text-white px-1 text-nowrap  flex-1 w-full">Invoice Number :
+                                        </span>
+                                        <span v-else class="text-white px-1 text-nowrap  flex-1 w-full">PO Number :
                                         </span>
                                         <span class="text-nowrap  text-white px-1  flex-1 w-full">Date : </span>
                                         <span v-if="invoiceData.paid == false && invoiceData.category == 'INV'"
@@ -265,7 +267,7 @@ onMounted(() => {
                                                 <Calendar v-model="invoiceData.due_date" initial-focus />
                                             </PopoverContent>
                                         </Popover>
-                                        <span v-if="!state.isEdit" class=" flex-1 border-t  px-1">{{
+                                        <span v-if="!state.isEdit  && invoiceData.category == 'INV'" class=" flex-1 border-t  px-1">{{
                                             invoiceData.due_date || '-'
                                             }}</span>
                                         <Select v-if="state.isEdit && invoiceData.category == 'INV'" v-model="invoiceData.paid">
