@@ -29,3 +29,7 @@ export function dotFormat(num: string) {
     if (!num) return ''
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
 }
+
+export function formatDate(date: string) {
+    return new Date(date).toLocaleDateString('id-ID')
+}

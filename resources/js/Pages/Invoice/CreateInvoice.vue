@@ -21,6 +21,7 @@ import Swal from "sweetalert2";
 
 const props = defineProps({
     invoice: Object,
+    category: String
 })
 
 const state = ref({ isEdit: true })
@@ -41,7 +42,9 @@ const invoiceData = ref({
     recipient_address: undefined,
     total: 0,
     paid: null,
-    tax: undefined,
+    tax: 0,
+    category: undefined,
+    total_payment: 0,
     invoice_details: []
 })
 
@@ -129,7 +132,7 @@ watch(invoiceData.value.invoice_details, () => {
         total += value.total_price;
     })
     invoiceData.value.total = total;
-    invoiceData.value.total_payment = invoiceData.value.total + ((invoiceData.value.tax ?? 0 / 100) * invoiceData.value.total);
+    invoiceData.value.total_payment = invoiceData.value.total + ((invoiceData.value.tax / 100) * invoiceData.value.total);
 }, { deep: true })
 
 onMounted(() => {
@@ -141,7 +144,17 @@ onMounted(() => {
         copyData.invoice_details.forEach(item => item.total_price = calculateTotal(item.item_qty, item.item_price))
         copyData.paid = copyData.paid === 1
         invoiceData.value = copyData;
+        invoiceData.value.category = copyData.invoice_number?.split('-').shift()
     }
+
+    if (props.category){
+        invoiceData.value.category = props.category
+    }
+
+    if (invoiceData.value.category == 'PO') {
+        invoiceData.value.paid = false;
+    }
+
 })
 </script>
 
@@ -178,7 +191,9 @@ onMounted(() => {
 
                             <div class="flex flex-col gap-2 w-full md:w-fit">
                                 <div class="w-full mt-6 mr-6 bg-black text-white pl-1 text-center md:text-start">
-                                    <p class="font-bold text-3xl">INVOICE</p>
+                                    <p v-if="invoiceData.category == 'INV'" class="font-bold text-3xl">INVOICE</p>
+                                    <p v-else-if="invoiceData.category == 'PO'" class="font-bold text-3xl">Purchase Order</p>
+                                    <p v-else class="font-bold text-3xl">INVOICE</p>
                                 </div>
                             </div>
                         </div>
@@ -207,10 +222,10 @@ onMounted(() => {
                                         <span class="text-white px-1 text-nowrap  flex-1 w-full">Invoice Number :
                                         </span>
                                         <span class="text-nowrap  text-white px-1  flex-1 w-full">Date : </span>
-                                        <span v-if="invoiceData.paid == false"
+                                        <span v-if="invoiceData.paid == false && invoiceData.category == 'INV'"
                                             class="text-nowrap  text-white px-1 bg-red-500 flex-1 w-full">Due Date :
                                         </span>
-                                        <span class="text-nowrap  text-white px-1 flex-1 w-full">Status : </span>
+                                        <span v-if="invoiceData.category == 'INV'" class="text-nowrap  text-white px-1 flex-1 w-full">Status : </span>
                                     </div>
                                     <div class="flex flex-col">
                                         <span class="md:self-end flex-1 text-nowrap  px-1">{{
@@ -224,10 +239,7 @@ onMounted(() => {
                                                 )">
                                                     <CalendarIcon class="mr-2 h-4 w-4" />
                                                     {{
-                                                        invoiceData.invoice_date ?
-                                                            df.format(invoiceData.invoice_date.toDate(getLocalTimeZone())) :
-                                                    "Pick a
-                                                    date"
+                                                        invoiceData.invoice_date ? df.format(invoiceData.invoice_date.toDate(getLocalTimeZone())) : "Pick a date"
                                                     }}
                                                 </Button>
                                             </PopoverTrigger>
@@ -237,7 +249,7 @@ onMounted(() => {
                                         </Popover>
                                         <span class=" flex-1 border-t  px-1" v-else>{{ invoiceData.invoice_date
                                             }}</span>
-                                        <Popover v-if="state.isEdit && invoiceData.paid == false">
+                                        <Popover v-if="state.isEdit && invoiceData.paid == false && invoiceData.category == 'INV'">
                                             <PopoverTrigger as-child>
                                                 <Button class="w-full rounded-0 border-t" :class="cn(
                                                     ' justify-start text-left font-normal',
@@ -245,9 +257,7 @@ onMounted(() => {
                                                 )">
                                                     <CalendarIcon class="mr-2 h-4 w-4" />
                                                     {{
-                                                        invoiceData.due_date ?
-                                                            df.format(invoiceData.due_date.toDate(getLocalTimeZone())) : "Pick a
-                                                    date"
+                                                        invoiceData.due_date ? df.format(invoiceData.due_date.toDate(getLocalTimeZone())) : "Pick a date"
                                                     }}
                                                 </Button>
                                             </PopoverTrigger>
@@ -258,7 +268,7 @@ onMounted(() => {
                                         <span v-if="!state.isEdit" class=" flex-1 border-t  px-1">{{
                                             invoiceData.due_date || '-'
                                             }}</span>
-                                        <Select v-if="state.isEdit" v-model="invoiceData.paid">
+                                        <Select v-if="state.isEdit && invoiceData.category == 'INV'" v-model="invoiceData.paid">
                                             <SelectTrigger class="w-full">
                                                 <SelectValue placeholder="Select a status" />
                                             </SelectTrigger>
@@ -273,8 +283,8 @@ onMounted(() => {
                                                 </SelectGroup>
                                             </SelectContent>
                                         </Select>
-                                        <span class="w-full px-1 text-white font-bold"
-                                            :class="invoiceData.paid ? 'bg-green-500' : 'bg-red-500'" v-else>{{
+                                        <span  v-if="!state.isEdit && invoiceData.category == 'INV'" class="w-full px-1 text-white font-bold"
+                                            :class="invoiceData.paid ? 'bg-green-500' : 'bg-red-500'">{{
                                             invoiceData.paid
                                             ? 'Paid' : 'Unpaid' }}</span>
                                     </div>
@@ -402,7 +412,7 @@ onMounted(() => {
                                             }}</span>
                                         </table-cell>
                                     </table-row>
-                                    <table-row>
+                                    <table-row v-if="invoiceData.category == 'INV'">
                                         <table-cell class=" border-black border bg-black" colspan="5">
                                             <span class="text-white font-bold text-xl">Payment To</span>
                                         </table-cell>
@@ -412,6 +422,7 @@ onMounted(() => {
                                         </table-cell>
                                     </table-row>
                                 </TableBody>
+
                                 <TableBody v-else>
                                     <TableRow v-for="(item, index) in invoiceData.invoice_details"
                                         v-if="invoiceData.invoice_details.length != 0">
@@ -484,7 +495,7 @@ onMounted(() => {
                                             }}</span>
                                         </table-cell>
                                     </table-row>
-                                    <table-row>
+                                    <table-row v-if="invoiceData.category == 'INV'">
                                         <table-cell class=" border-black border" colspan="5">
                                             <span class="text-black font-bold text-xl">Payment To</span>
                                         </table-cell>
@@ -496,7 +507,7 @@ onMounted(() => {
                             </Table>
                         </div>
                         <div class="outline-dashed outline-1 outline-gray-400 rounded-full mt-4"></div>
-                        <p class="text-sm font-light">*This invoice generated by system, Manual signature is not
+                        <p class="text-sm font-light">*This {{ invoiceData.category == 'INV' ? 'invoice' : 'PO' }} generated by system, Manual signature is not
                             necessary</p>
                     </CardContent>
                     <CardFooter class="block">

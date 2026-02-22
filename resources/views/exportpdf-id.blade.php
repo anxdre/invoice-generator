@@ -98,15 +98,16 @@
                 <img src="{{ public_path(str_replace(asset(''), '', $company->img_url)) }}" class="logo"><br>
             </td>
             <td style="padding-left: 1em">
-                <b style="font-size: 2em;text-decoration: underline">{{ $company->name }}</b><br>
-                {{ $company->address }}<br>
-                {{ $company->phone }}<br>
-                {{ $company->email }}
+                <b style="font-size: 2em;">{{ $company->name }}</b>
+                <div style="background: #000;color: white;height: 2px"></div>
+                <span style="font-size: 1em">{{ $company->address }}</span>
+                <span style="font-size: 1em">{{ $company->phone }}</span>
+                <span style="font-size: 1em">{{ $company->email }}</span>
             </td>
         </tr>
     </table>
 
-    <div class="title" style="width: 100%">INVOICE</div>
+    <div class="title" style="width: 100%">{{$invoice->category}}</div>
 
     <div class="hr"></div>
 
@@ -121,32 +122,54 @@
                     {{ $invoice->payment_number }}
                 </div>
             </td>
-            <td width="50%" class="box">
-                <table width="100%">
-                    <tr>
-                        <td class="bg-black" style="font-weight: bold;padding-left: 8px">Nomor Faktur</td>
-                        <td>{{ $invoice->invoice_number }}</td>
-                    </tr>
-                    <tr>
-                        <td class="bg-black" style="font-weight: bold;padding-left: 8px">Tanggal</td>
-                        <td>{{ $invoice->invoice_date }}</td>
-                    </tr>
-                    @if($invoice->due_date)
+            @if($invoice->category == 'INVOICE')
+                <td width="50%" class="box">
+                    <table width="100%">
                         <tr>
-                            <td class="bg-black" style="font-weight: bold;padding-left: 8px">Jatuh Tempo</td>
-                            <td>{{ $invoice->due_date }}</td>
+                            <td class="bg-black" style="font-weight: bold;padding-left: 8px">Nomor Faktur</td>
+                            <td>{{ $invoice->invoice_number }}</td>
                         </tr>
-                    @endif
-                    <tr>
-                        <td class="bg-black" style="font-weight: bold;padding-left: 8px">Status</td>
-                        <td class="{{ $invoice->paid ? 'bg-green' : 'bg-red' }}">
-                            {{ $invoice->paid ? 'Lunas' : 'Belum Lunas' }}
-                        </td>
-                    </tr>
-                </table>
-            </td>
+                        <tr>
+                            <td class="bg-black" style="font-weight: bold;padding-left: 8px">Tanggal</td>
+                            <td>{{ $invoice->invoice_date }}</td>
+                        </tr>
+                        @if($invoice->due_date)
+                            <tr>
+                                <td class="bg-black" style="font-weight: bold;padding-left: 8px">Jatuh Tempo</td>
+                                <td>{{ $invoice->due_date }}</td>
+                            </tr>
+                        @endif
+                        <tr>
+                            <td class="bg-black" style="font-weight: bold;padding-left: 8px">Status</td>
+                            <td class="{{ $invoice->paid ? 'bg-green' : 'bg-red' }}">
+                                {{ $invoice->paid ? 'Lunas' : 'Belum Lunas' }}
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            @else
+                <td width="50%" class="box">
+                    <table width="100%">
+                        <tr>
+                            <td class="bg-black" style="font-weight: bold;padding-left: 8px">Nomor Faktur</td>
+                            <td>{{ $invoice->invoice_number }}</td>
+                        </tr>
+                        <tr>
+                            <td class="bg-black" style="font-weight: bold;padding-left: 8px">Tanggal</td>
+                            <td>{{ $invoice->invoice_date }}</td>
+                        </tr>
+                    </table>
+                </td>
+            @endif
         </tr>
     </table>
+
+    @if($invoice->category == 'PURCHASE ORDER')
+        <p class="small">
+            Faktur ini dibuat sebagai bukti Purchase Order untuk barang/jasa yang diterima oleh kami  dengan item sebagai berikut :
+        </p>
+    @endif
+
 
     <!-- ITEM -->
     <table class="table">
@@ -202,12 +225,14 @@
                 Rp {{ number_format($invoice->total_payment,2,',','.') }}
             </td>
         </tr>
-        <tr>
-            <td colspan="5" style="font-weight: bold">Pembayaran Ke</td>
-            <td class="text-right">
-                {{$invoice->payment_number ?? '-'}}
-            </td>
-        </tr>
+        @if($invoice->category == 'INVOICE')
+            <tr>
+                <td colspan="5" style="font-weight: bold">Pembayaran Ke</td>
+                <td class="text-right">
+                    {{$invoice->payment_number ?? '-'}}
+                </td>
+            </tr>
+        @endif
     </table>
 
     <div class="hr"></div>

@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { onMounted, ref } from "vue";
 import axios from "axios";
 import { toast } from "vue-sonner";
-import { idrFormat } from "@/lib/utils";
+import { formatDate, idrFormat } from "@/lib/utils";
 import Swal from "sweetalert2";
 
 const dataset = ref([])
@@ -54,6 +54,25 @@ function confirmDelete(id) {
     });
 }
 
+function createInvoice() {
+    Swal.fire({
+        title: "Select type",
+        showDenyButton: true,
+        showCancelButton: true,
+        confirmButtonText: "Invoice",
+        denyButtonText: `Purchase Order`,
+        confirmButtonColor: "#f69f0a",
+        denyButtonColor: "#000",
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.get(route('invoices.create.index', { type: 'INV', }))
+        } else if (result.isDenied) {
+            router.get(route('invoices.create.index', { type: 'PO', }))
+        }
+    });
+
+}
+
 onMounted(() => {
     getData();
 })
@@ -67,10 +86,10 @@ onMounted(() => {
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Dashboard</h2>
         </template>
 
-        <Button @click="router.get(route('invoices.create.index'))"
+        <Button @click="createInvoice()"
                 class="bg-black text-white rounded-full absolute bottom-0 right-0 mr-4 mb-4 size-16 md:hidden md:rounded-lg md:w-fit md:h-fit">
             <Plus class="size-6 md:mr-2"/>
-            <span class="hidden md:block">Create New Invoice</span></Button>
+            <span class="hidden md:block">Create</span></Button>
 
         <div class="py-12">
             <div class="mx-4 sm:px-6 lg:px-8">
@@ -80,10 +99,10 @@ onMounted(() => {
                         <CardDescription>
                             <div class="inline-flex w-full justify-between items-center">
                                 <p class="text-sm text-gray-600">Manage your invoices here </p>
-                                <Button @click="router.get(route('invoices.create.index'))"
+                                <Button @click="createInvoice()"
                                         class="bg-black text-white rounded-full hidden  mr-4 mb-4 size-16 md:flex md:rounded-lg md:w-fit md:h-fit">
                                     <Plus class="size-6 md:mr-2"/>
-                                    <span class="hidden md:block">Create New Invoice</span></Button>
+                                    <span class="hidden md:block">Create</span></Button>
                             </div>
                         </CardDescription>
                     </CardHeader>
@@ -97,11 +116,12 @@ onMounted(() => {
                                     <TableHead class="w-fit">
                                         Invoice Number
                                     </TableHead>
-                                    <TableHead>Payment To</TableHead>
+                                    <TableHead>Charged To</TableHead>
                                     <TableHead class="text-right">
                                         Amount
                                     </TableHead>
-                                    <TableHead class="text-center">Status</TableHead>
+                                    <TableHead class="text-center w-fit">Status</TableHead>
+                                    <TableHead class="text-center w-fit">Created At</TableHead>
                                     <TableHead class="text-center">
                                         Actions
                                     </TableHead>
@@ -123,6 +143,7 @@ onMounted(() => {
                                         <span v-if="item.paid" class="bg-green-500 text-white px-4 py-1 rounded-full">Paid</span>
                                         <span v-else class="bg-red-500 text-white px-4 py-1 rounded-full">Unpaid</span>
                                     </TableCell>
+                                    <table-cell class="text-center">{{formatDate(item.created_at)}}</table-cell>
                                     <TableCell class="justify-center gap-2 inline-flex w-full ">
                                         <Button  @click="router.get(route('invoices.detail',{id:item.id}))" class="bg-black text-white p-2">
                                             <EyeIcon/>

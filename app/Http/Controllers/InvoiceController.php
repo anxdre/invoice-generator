@@ -38,7 +38,7 @@ class InvoiceController extends Controller
     #[Get('/create/new', name: '.create.index')]
     function createPage(Request $request)
     {
-        return Inertia::render('Invoice/CreateInvoice', []);
+        return Inertia::render('Invoice/CreateInvoice', ['category' => $request->type ?? '']);
     }
 
     #[Post('/store', name: '.store')]
@@ -61,7 +61,7 @@ class InvoiceController extends Controller
                 'id' => $request->id,
             ], [
                 'user_id' => Auth::id(),
-                'invoice_number' => Carbon::now()->format('ymd-His') . '-' . rand(100, 999),
+                'invoice_number' => $request->category == 'INV' ? 'INV-' . Carbon::now()->format('ymd') . '-' . rand(100, 999) : 'PO-' . Carbon::now()->format('ymd') . '-' . rand(100, 999),
                 'invoice_date' => Carbon::parse($request->date)->format('d-m-Y'),
                 'to' => $request->to,
                 'recipient_address' => $request->recipient_address,
@@ -114,31 +114,37 @@ class InvoiceController extends Controller
     }
 
     #[Get('/export/{id}', name: '.export')]
-    public function pdf($id,Request $request)
+    public function pdf($id, Request $request)
     {
-        if (!$id){
+        if (!$id) {
             return redirect()->back();
         }
 
         $invoice = Invoice::with('details')->findOrFail($id);
         $company = auth()->user();
 
-        if ($invoice->details){
+        if ($invoice->details) {
             $invoice->details->map(function ($item) {
                 $item->total_price = $item->item_price * $item->item_qty;
             });
         }
 
-        $pdf = null;
-        if ($request->lang == 'en'){
-            $pdf = Pdf::loadView('exportpdf-en', compact('invoice','company'));
+        $type = explode('-', $invoice->invoice_number)[0];
+        if ($type == 'INV') {
+            $invoice->category = 'INVOICE';
+        } else {
+            $invoice->category = 'PURCHASE ORDER';
         }
 
-        if ($request->lang = 'id'){
-            $pdf = Pdf::loadView('exportpdf-id', compact('invoice','company'));
+        if ($request->lang == 'en') {
+            $pdf = Pdf::loadView('exportpdf-en', compact('invoice', 'company'));
+            return $pdf->download("invoice-$invoice->invoice_number.pdf");
         }
 
-        //        return View('exportpdf', compact('invoice','company'));
+        $pdf = Pdf::loadView('exportpdf-id', compact('invoice', 'company'));
         return $pdf->download("invoice-$invoice->invoice_number.pdf");
+
+//                return View('exportpdf-id', compact('invoice','company'));
+
     }
 }
