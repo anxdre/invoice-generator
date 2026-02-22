@@ -105,8 +105,8 @@
             </td>
             <td style="padding-left: 1em">
                 <b style="font-size: 2em;">{{ $company->name }}</b>
-                <div style="background: #000;color: white;height: 2px"></div>
-                <span style="font-size: 1em">{{ $company->address }}</span>
+                <br>
+                <span style="font-size: 1em;border-top:2px solid;width: fit-content">{{ $company->address }}</span>
                 <span style="font-size: 1em">{{ $company->phone }}</span>
                 <span style="font-size: 1em">{{ $company->email }}</span>
             </td>
@@ -172,7 +172,7 @@
 
     @if($invoice->category == 'PURCHASE ORDER')
         <p class="small">
-            This invoice is created as proof of Purchase Order for goods/services received by us with the following items:
+            This letter is created as proof of Purchasing Order for goods/services received by us with the following items:
         </p>
     @endif
 

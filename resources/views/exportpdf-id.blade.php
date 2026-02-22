@@ -99,8 +99,8 @@
             </td>
             <td style="padding-left: 1em">
                 <b style="font-size: 2em;">{{ $company->name }}</b>
-                <div style="background: #000;color: white;height: 2px"></div>
-                <span style="font-size: 1em">{{ $company->address }}</span>
+                <br>
+                <span style="font-size: 1em;border-top:2px solid;width: fit-content">{{ $company->address }}</span>
                 <span style="font-size: 1em">{{ $company->phone }}</span>
                 <span style="font-size: 1em">{{ $company->email }}</span>
             </td>
@@ -166,7 +166,7 @@
 
     @if($invoice->category == 'PURCHASE ORDER')
         <p class="small">
-            Faktur ini dibuat sebagai bukti Purchase Order untuk barang/jasa yang diterima oleh kami  dengan item sebagai berikut :
+            Surat ini dibuat sebagai bukti Purchasing Order untuk barang/jasa yang diterima oleh kami  dengan item sebagai berikut :
         </p>
     @endif
 
