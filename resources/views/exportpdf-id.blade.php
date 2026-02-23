@@ -101,7 +101,9 @@
                 <b style="font-size: 2em;">{{ $company->name }}</b>
                 <br>
                 <span style="font-size: 1em;border-top:2px solid;width: fit-content">{{ $company->address }}</span>
+                <br>
                 <span style="font-size: 1em">{{ $company->phone }}</span>
+                <br>
                 <span style="font-size: 1em">{{ $company->email }}</span>
             </td>
         </tr>
