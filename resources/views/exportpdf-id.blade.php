@@ -119,7 +119,7 @@
                 <div style="padding:6px">
                     <b>{{ $invoice->to }}</b><br>
                     {{ $invoice->recipient_address }}<br>
-                    {{ $invoice->payment_number }}
+                    {{ $invoice->recipient_number }}
                 </div>
             </td>
             @if($invoice->category == 'INVOICE')
