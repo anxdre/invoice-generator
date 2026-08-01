@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 import { CardContent, CardFooter } from "@/Components/ui/card";
-import { ArrowLeft, CalendarIcon, PlusCircleIcon, PrinterIcon, SaveIcon, TrashIcon } from "lucide-vue-next";
+import { ArrowLeft, CalendarIcon, Download, FilePlus2, FileSpreadsheet, Pencil, PlusCircleIcon, PrinterIcon, SaveIcon, TrashIcon, Upload } from "lucide-vue-next";
 import { Button } from "@/Components/ui/button";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import Card from "../../Components/ui/card/Card.vue";
@@ -14,6 +14,7 @@ import { DateFormatter, getLocalTimeZone } from "@internationalized/date";
 import { onMounted, ref, watch } from "vue";
 import { Input } from "@/Components/ui/input";
 import { Textarea } from "@/Components/ui/textarea";
+import RichTextEditor from "@/Components/RichTextEditor.vue";
 import axios from "axios";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue, } from '@/Components/ui/select'
 import { toast } from "vue-sonner";
@@ -24,7 +25,7 @@ const props = defineProps({
     category: String
 })
 
-const state = ref({ isEdit: true })
+const state = ref({ isEdit: true, canEdit: true })
 
 const df = new DateFormatter('en-US', {
     dateStyle: 'long',
@@ -45,8 +46,12 @@ const invoiceData = ref({
     tax: 0,
     category: undefined,
     total_payment: 0,
+    status: 'draft',
+    notes: undefined,
     invoice_details: []
 })
+
+const fileInput = ref(null)
 
 function addItem() {
     invoiceData.value.invoice_details.push({
@@ -65,45 +70,77 @@ function calculateTotal(amount: number, quantity: number) {
     return amount * quantity;
 }
 
-function confirmSave() {
+function displayDate(date) {
+    if (!date) return ''
+    if (typeof date.toDate === 'function') {
+        return df.format(date.toDate(getLocalTimeZone()))
+    }
+    return date
+}
+
+function backendDate(date) {
+    if (!date) return undefined
+    if (typeof date.toDate === 'function') {
+        return df.format(date.toDate(getLocalTimeZone()))
+    }
+    return date
+}
+
+function confirmSave(status = 'draft') {
+    const isSubmit = status === 'submitted';
     Swal.fire({
-        title: "Are you sure ?",
-        text: "You won't be able to edit this!",
+        title: isSubmit ? "Submit this invoice?" : "Save as draft?",
+        text: isSubmit ? "You won't be able to edit this after submission!" : "You can still edit this invoice before submitting it.",
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#3085d6",
         cancelButtonColor: "#d33",
-        confirmButtonText: "Yes, save it!",
+        confirmButtonText: isSubmit ? "Yes, submit it!" : "Yes, save it!",
         reverseButtons: true
     }).then((result) => {
         if (result.isConfirmed) {
-            saveInvoice()
+            saveInvoice(status)
         }
     });
 }
 
-function saveInvoice() {
+function saveInvoice(status = 'draft') {
     axios.post(route('invoices.store'), {
         ...invoiceData.value,
-        date: df.format(invoiceData.value.invoice_date?.toDate(getLocalTimeZone())),
-        due_date: df.format(invoiceData.value.due_date?.toDate(getLocalTimeZone())),
+        status,
+        date: backendDate(invoiceData.value.invoice_date),
+        due_date: backendDate(invoiceData.value.due_date),
     })
         .then(res => {
             invoiceData.value.id = res.data.id;
             invoiceData.value.user_id = res.data.user_id;
             invoiceData.value.invoice_number = res.data.invoice_number;
+            invoiceData.value.status = res.data.status;
             state.value.isEdit = false;
+            state.value.canEdit = invoiceData.value.status !== 'submitted';
 
-            Swal.fire({
-                title: "Success!",
-                text: "Your invoice has been saved.",
-                icon: "success"
-            });
+            if (status === 'submitted') {
+                Swal.fire({
+                    title: "Success!",
+                    text: "Your invoice has been submitted.",
+                    icon: "success"
+                });
+            } else {
+                Swal.fire({
+                    title: "Success!",
+                    text: "Your invoice has been saved as draft.",
+                    icon: "success"
+                });
+            }
         }).catch(err => {
         const errors = err.response.data.errors;
-        Object.values(errors).flat().forEach(error => {
-            toast.error(error)
-        })
+        if (errors) {
+            Object.values(errors).flat().forEach(error => {
+                toast.error(error)
+            })
+        } else {
+            toast.error(err.response.data.message ?? "Gagal menyimpan invoice")
+        }
     })
 }
 
@@ -126,18 +163,138 @@ function exportInvoice() {
 
 }
 
-watch(invoiceData.value.invoice_details, () => {
+function exportExcel() {
+    window.open(route('invoices.export.excel', { id: invoiceData.value.id }), '_blank')
+}
+
+function generateInvoice() {
+    Swal.fire({
+        title: "Generate Invoice?",
+        html: `
+            <div class="text-left text-sm">
+                <p>Invoice baru akan dibuat berdasarkan Purchase Order berikut:</p>
+                <table class="w-full mt-3 text-sm">
+                    <tr>
+                        <td class="py-1 text-gray-500">PO Number</td>
+                        <td class="py-1 text-right font-medium">${invoiceData.value.invoice_number}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-1 text-gray-500">Ditujukan Kepada</td>
+                        <td class="py-1 text-right font-medium">${invoiceData.value.to || '-'}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-1 text-gray-500">Total</td>
+                        <td class="py-1 text-right font-medium">${idrFormat(invoiceData.value.total)}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-1 text-gray-500">Jumlah Item</td>
+                        <td class="py-1 text-right font-medium">${invoiceData.value.invoice_details.length} item</td>
+                    </tr>
+                    <tr>
+                        <td class="py-1 text-gray-500">Status Invoice Baru</td>
+                        <td class="py-1 text-right font-medium">Draft</td>
+                    </tr>
+                </table>
+                <p class="mt-3 text-xs text-gray-500">Seluruh item akan disalin dan nomor invoice baru akan dibuat otomatis.</p>
+            </div>`,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Generate",
+        cancelButtonText: "Batal",
+        confirmButtonColor: "#3085d6",
+        reverseButtons: true
+    }).then((result) => {
+        if (!result.isConfirmed) return
+
+        axios.post(route('invoices.generate.invoice', { id: invoiceData.value.id }))
+            .then(res => {
+                const invoice = res.data
+                Swal.fire({
+                    title: "Invoice Berhasil Digenerate!",
+                    text: `Invoice ${invoice.invoice_number} telah dibuat sebagai draft.`,
+                    icon: "success",
+                    showCancelButton: true,
+                    confirmButtonText: "Buka Invoice",
+                    cancelButtonText: "Tutup",
+                    confirmButtonColor: "#3085d6",
+                    reverseButtons: true
+                }).then((r) => {
+                    if (r.isConfirmed) {
+                        router.get(route('invoices.detail', { id: invoice.id }))
+                    }
+                })
+            })
+            .catch(err => {
+                toast.error(err.response?.data?.message ?? "Gagal generate invoice")
+            })
+    })
+}
+
+function importItems(event) {
+    const file = event.target.files[0]
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    axios.post(route('invoices.import.items'), formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    })
+        .then(res => {
+            const items = res.data
+            items.forEach(item => {
+                const price = Number(item.item_price)
+                const qty = Number(item.item_qty)
+                invoiceData.value.invoice_details.push({
+                    id: undefined,
+                    invoice_id: invoiceData.value.invoice_id,
+                    item_name: item.item_name,
+                    item_code: item.item_code,
+                    item_price: price,
+                    item_qty: qty,
+                    total_price: calculateTotal(qty, price),
+                })
+            })
+            toast.success(`${items.length} item berhasil diimport`)
+            if (fileInput.value) fileInput.value.value = ''
+        })
+        .catch(err => {
+            toast.error(err.response?.data?.message || 'Gagal membaca file excel')
+            if (fileInput.value) fileInput.value.value = ''
+        })
+}
+
+function downloadTemplate() {
+    window.open(route('invoices.import.template'), '_blank')
+}
+
+function renderNotes(notes) {
+    if (!notes) return '-'
+    if (notes.includes('<')) return notes
+    return escapeHtml(notes).replace(/\n/g, '<br>')
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+}
+
+function recalculateTotal() {
     let total = 0;
     invoiceData.value.invoice_details.forEach((value, index,) => {
         total += value.total_price;
     })
     invoiceData.value.total = total;
     invoiceData.value.total_payment = invoiceData.value.total + ((invoiceData.value.tax / 100) * invoiceData.value.total);
-}, { deep: true })
+}
+
+watch(() => invoiceData.value.invoice_details, recalculateTotal, { deep: true })
 
 onMounted(() => {
     if (props.invoice) {
-        state.value.isEdit = false;
         const copyData = { ...props.invoice }
 
         copyData.invoice_details = copyData.details.map(item => ({ ...item, item_price: Number(item.item_price) }))
@@ -145,6 +302,9 @@ onMounted(() => {
         copyData.paid = copyData.paid === 1
         invoiceData.value = copyData;
         invoiceData.value.category = copyData.invoice_number?.split('-').shift()
+        recalculateTotal()
+        state.value.canEdit = copyData.status !== 'submitted'
+        state.value.isEdit = false
     }
 
     if (props.category) {
@@ -168,10 +328,16 @@ onMounted(() => {
                 <Button @click="router.get(route('dashboard'))" class="hover:bg-gray-200" variant="outline">
                     <ArrowLeft class="size-5"/>
                 </Button>
-                <h2 v-if="state.isEdit" class="font-semibold text-xl text-gray-800 leading-tight">Create New
-                    {{ invoiceData.category == 'INV' ? 'Invoice' : 'Purchase Order' }}</h2>
-                <h2 v-else class="font-semibold text-xl text-gray-800 leading-tight">Detail
-                    {{ invoiceData.category == 'INV' ? 'Invoice' : 'Purchase Order' }}</h2>
+                <div class="flex flex-col md:flex-row md:items-center gap-2">
+                    <h2 v-if="!invoiceData.id" class="font-semibold text-xl text-gray-800 leading-tight">Create New
+                        {{ invoiceData.category == 'INV' ? 'Invoice' : 'Purchase Order' }}</h2>
+                    <h2 v-else class="font-semibold text-xl text-gray-800 leading-tight">Detail
+                        {{ invoiceData.category == 'INV' ? 'Invoice' : 'Purchase Order' }}</h2>
+                    <span v-if="invoiceData.id" class="px-2 py-0.5 rounded-full text-xs font-semibold text-white w-fit"
+                          :class="invoiceData.status === 'submitted' ? 'bg-green-500' : 'bg-gray-400'">
+                        {{ invoiceData.status === 'submitted' ? 'Submitted' : 'Draft' }}
+                    </span>
+                </div>
             </div>
         </template>
 
@@ -204,7 +370,9 @@ onMounted(() => {
                             <div class="flex flex-col gap-2 md:flex-row w-full justify-between items-center">
                                 <div class="flex flex-col w-full md:w-1/3 border">
                                     <div class=" bg-black">
-                                        <p class="font-bold text-xl text-center text-white">Charged to</p>
+                                        <p class="font-bold text-xl text-center text-white">{{
+                                                invoiceData.category == 'INV' ? 'Ditagihkan Kepada' : 'Ditujukan Kepada'
+                                            }}</p>
                                     </div>
                                     <div class="p-2">
                                         <Input v-if="state.isEdit" v-model="invoiceData.to"
@@ -245,7 +413,7 @@ onMounted(() => {
                                                 )">
                                                     <CalendarIcon class="mr-2 h-4 w-4"/>
                                                     {{
-                                                        invoiceData.invoice_date ? df.format(invoiceData.invoice_date.toDate(getLocalTimeZone())) : "Pick a date"
+                                                        invoiceData.invoice_date ? displayDate(invoiceData.invoice_date) : "Pick a date"
                                                     }}
                                                 </Button>
                                             </PopoverTrigger>
@@ -265,7 +433,7 @@ onMounted(() => {
                                                 )">
                                                     <CalendarIcon class="mr-2 h-4 w-4"/>
                                                     {{
-                                                        invoiceData.due_date ? df.format(invoiceData.due_date.toDate(getLocalTimeZone())) : "Pick a date"
+                                                        invoiceData.due_date ? displayDate(invoiceData.due_date) : "Pick a date"
                                                     }}
                                                 </Button>
                                             </PopoverTrigger>
@@ -304,10 +472,22 @@ onMounted(() => {
                             </div>
                         </div>
                         <div class="flex flex-col w-full mt-12 gap-2">
-                            <Button v-if="state.isEdit" class="bg-amber-500 text-white" @click="addItem()">
-                                <PlusCircleIcon class="size-5"/>
-                                Add Item
-                            </Button>
+                            <div v-if="state.isEdit" class="flex flex-wrap gap-2">
+                                <Button class="bg-amber-500 text-white" @click="addItem()">
+                                    <PlusCircleIcon class="size-5"/>
+                                    Add Item
+                                </Button>
+                                <Button class="bg-blue-500 text-white" @click="fileInput?.click()">
+                                    <Upload class="size-5"/>
+                                    Import Items
+                                </Button>
+                                <Button class="bg-gray-500 text-white" @click="downloadTemplate()">
+                                    <Download class="size-5"/>
+                                    Download Template
+                                </Button>
+                                <input ref="fileInput" type="file" accept=".xlsx,.xls" class="hidden"
+                                       @change="importItems($event)">
+                            </div>
                             <Table class="w-[1000px] md:w-full border border-black">
                                 <TableHeader>
                                     <TableRow class="bg-black hover:bg-black">
@@ -518,19 +698,48 @@ onMounted(() => {
                                 </TableBody>
                             </Table>
                         </div>
+                        <div class="flex flex-col w-full mt-6 gap-2">
+                            <p class="font-bold text-xl">Notes</p>
+                            <RichTextEditor v-if="state.isEdit" v-model="invoiceData.notes"
+                                            placeholder="Catatan untuk invoice / purchase order..."/>
+                            <div v-else class="rich-view break-words border border-gray-300 rounded p-3 min-h-10"
+                                 v-html="renderNotes(invoiceData.notes)"></div>
+                        </div>
                         <div class="outline-dashed outline-1 outline-gray-400 rounded-full mt-4"></div>
                         <p class="text-sm font-light">*This {{ invoiceData.category == 'INV' ? 'invoice' : 'PO' }}
                             generated by system, Manual signature is not
                             necessary</p>
                     </CardContent>
                     <CardFooter class="block">
-                        <Button v-if="state.isEdit" class="bg-green-500 text-white w-full mt-5" @click="confirmSave()">
+                        <div v-if="!state.isEdit" class="mt-5 flex flex-col md:flex-row gap-3">
+                            <Button class="bg-black text-white w-full" @click="exportInvoice()">
+                                <PrinterIcon class="size-5"/>
+                                Export Invoice
+                            </Button>
+                            <Button class="bg-green-600 text-white w-full" @click="exportExcel()">
+                                <FileSpreadsheet class="size-5"/>
+                                Export Excel
+                            </Button>
+                            <Button v-if="invoiceData.category == 'PO' && invoiceData.status === 'submitted'"
+                                    class="bg-blue-500 text-white w-full"
+                                    @click="generateInvoice()">
+                                <FilePlus2 class="size-5"/>
+                                Generate Invoice
+                            </Button>
+                            <Button v-if="state.canEdit" class="bg-green-500 text-white w-full"
+                                    @click="confirmSave('submitted')">
+                                <SaveIcon class="size-5"/>
+                                Submit Invoice
+                            </Button>
+                            <Button v-if="state.canEdit" class="bg-amber-500 text-white w-full"
+                                    @click="state.isEdit = true">
+                                <Pencil class="size-5"/>
+                                Edit
+                            </Button>
+                        </div>
+                        <Button v-else class="bg-green-500 text-white w-full mt-5" @click="confirmSave('draft')">
                             <SaveIcon class="size-5"/>
-                            Save Invoice
-                        </Button>
-                        <Button v-else class="bg-black text-white w-full mt-5" @click="exportInvoice()">
-                            <PrinterIcon class="size-5"/>
-                            Export Invoice
+                            Save as Draft
                         </Button>
                     </CardFooter>
                 </Card>
@@ -539,4 +748,43 @@ onMounted(() => {
     </AuthenticatedLayout>
 </template>
 
-<style scoped></style>
+<style scoped>
+.rich-view :deep(p) {
+    margin: 0.5em 0;
+}
+
+.rich-view :deep(ul),
+.rich-view :deep(ol) {
+    padding-left: 1.5rem;
+    margin: 0.5em 0;
+}
+
+.rich-view :deep(blockquote) {
+    border-left: 3px solid #d1d5db;
+    padding-left: 0.75rem;
+    color: #4b5563;
+    margin: 0.5em 0;
+}
+
+.rich-view :deep(h1) {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0.5em 0;
+}
+
+.rich-view :deep(h2) {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin: 0.5em 0;
+}
+
+.rich-view :deep(h3) {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin: 0.5em 0;
+}
+
+.rich-view :deep(u) {
+    text-decoration: underline;
+}
+</style>

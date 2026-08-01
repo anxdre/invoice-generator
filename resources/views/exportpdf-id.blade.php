@@ -11,9 +11,23 @@
 
         .card {
             background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 16px;
+        }
+
+        .notes {
+            margin-top: 10px;
+            line-height: 1.5;
+            text-align: left;
+        }
+
+        .watermark {
+            position: fixed;
+            top: 42%;
+            left: 12%;
+            font-size: 110px;
+            font-weight: bold;
+            color: rgba(200, 200, 200, 0.35);
+            transform: rotate(-30deg);
+            z-index: 999;
         }
 
         .logo {
@@ -89,6 +103,11 @@
 </head>
 
 <body>
+
+@if($invoice->status === 'draft')
+    <div class="watermark">DRAFT</div>
+@endif
+
 <div class="card">
 
     <!-- HEADER -->
@@ -117,7 +136,7 @@
     <table width="100%" cellspacing="6">
         <tr>
             <td width="50%" class="box">
-                <div class="box-header">Ditagihkan Kepada</div>
+                <div class="box-header">{{ $invoice->category === 'INVOICE' ? 'Ditagihkan Kepada' : 'Ditujukan Kepada' }}</div>
                 <div style="padding:6px">
                     <b>{{ $invoice->to }}</b><br>
                     {{ $invoice->recipient_address }}<br>
@@ -238,6 +257,17 @@
     </table>
 
     <div class="hr"></div>
+
+    @if($invoice->notes)
+        <div class="notes">
+            <b>Catatan:</b><br>
+            @if(str_contains($invoice->notes, '<'))
+                {!! $invoice->notes !!}
+            @else
+                {!! nl2br(e($invoice->notes)) !!}
+            @endif
+        </div>
+    @endif
 
     <p class="small">
         *Faktur ini dibuat secara otomatis oleh sistem, tanda tangan manual tidak diperlukan.

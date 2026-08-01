@@ -4,15 +4,64 @@ import { Head, router } from '@inertiajs/vue3';
 import Card from "@/Components/ui/card/Card.vue";
 import { CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/Components/ui/card";
 import { Button } from "@/Components/ui/button";
-import { EyeIcon, Plus, TrashIcon } from "lucide-vue-next";
+import { EyeIcon, FilePlus2, Plus, TrashIcon } from "lucide-vue-next";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/Components/ui/table";
-import { onMounted, ref } from "vue";
+import { Input } from "@/Components/ui/input";
+import { computed, onMounted, ref } from "vue";
 import axios from "axios";
 import { toast } from "vue-sonner";
 import { formatDate, idrFormat } from "@/lib/utils";
 import Swal from "sweetalert2";
 
 const dataset = ref([])
+const search = ref('')
+const statusFilter = ref('')
+const categoryFilter = ref('')
+const sortKey = ref('created_at')
+const sortDir = ref('desc')
+
+const filteredInvoices = computed(() => {
+    let rows = dataset.value.filter(item => {
+        const q = search.value.trim().toLowerCase()
+        const matchSearch = !q
+            || (item.invoice_number || '').toLowerCase().includes(q)
+            || (item.to || '').toLowerCase().includes(q)
+        const matchStatus = !statusFilter.value || item.status === statusFilter.value
+        const category = String(item.invoice_number || '').split('-')[0]
+        const matchCategory = !categoryFilter.value || category === categoryFilter.value
+        return matchSearch && matchStatus && matchCategory
+    })
+
+    const dir = sortDir.value === 'asc' ? 1 : -1
+    return rows.sort((a, b) => {
+        let av, bv
+        if (sortKey.value === 'total') {
+            av = a.total; bv = b.total
+        } else if (sortKey.value === 'created_at') {
+            av = new Date(a.created_at); bv = new Date(b.created_at)
+        } else {
+            av = String(a[sortKey.value] || '').toLowerCase()
+            bv = String(b[sortKey.value] || '').toLowerCase()
+        }
+        if (av < bv) return -1 * dir
+        if (av > bv) return 1 * dir
+        return 0
+    })
+})
+
+function toggleSort(key) {
+    if (sortKey.value === key) {
+        sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+    } else {
+        sortKey.value = key
+        sortDir.value = 'asc'
+    }
+}
+
+function sortIndicator(key) {
+    if (sortKey.value !== key) return '↕'
+    return sortDir.value === 'asc' ? '↑' : '↓'
+}
 
 function getData() {
     axios.get(route('invoices.index'))
@@ -73,6 +122,67 @@ function createInvoice() {
 
 }
 
+function generateInvoice(item) {
+    Swal.fire({
+        title: "Generate Invoice?",
+        html: `
+            <div class="text-left text-sm">
+                <p>Invoice baru akan dibuat berdasarkan Purchase Order berikut:</p>
+                <table class="w-full mt-3 text-sm">
+                    <tr>
+                        <td class="py-1 text-gray-500">PO Number</td>
+                        <td class="py-1 text-right font-medium">${item.invoice_number}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-1 text-gray-500">Ditujukan Kepada</td>
+                        <td class="py-1 text-right font-medium">${item.to || '-'}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-1 text-gray-500">Total</td>
+                        <td class="py-1 text-right font-medium">${idrFormat(item.total)}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-1 text-gray-500">Status Invoice Baru</td>
+                        <td class="py-1 text-right font-medium">Draft</td>
+                    </tr>
+                </table>
+                <p class="mt-3 text-xs text-gray-500">Seluruh item akan disalin dan nomor invoice baru akan dibuat otomatis.</p>
+            </div>`,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Generate",
+        cancelButtonText: "Batal",
+        confirmButtonColor: "#3085d6",
+        reverseButtons: true
+    }).then((result) => {
+        if (!result.isConfirmed) return
+
+        axios.post(route('invoices.generate.invoice', { id: item.id }))
+            .then(res => {
+                const invoice = res.data
+                Swal.fire({
+                    title: "Invoice Berhasil Digenerate!",
+                    text: `Invoice ${invoice.invoice_number} telah dibuat sebagai draft.`,
+                    icon: "success",
+                    showCancelButton: true,
+                    confirmButtonText: "Buka Invoice",
+                    cancelButtonText: "Tutup",
+                    confirmButtonColor: "#3085d6",
+                    reverseButtons: true
+                }).then((r) => {
+                    if (r.isConfirmed) {
+                        router.get(route('invoices.detail', { id: invoice.id }))
+                    } else {
+                        getData()
+                    }
+                })
+            })
+            .catch(err => {
+                toast.error(err.response?.data?.message ?? "Gagal generate invoice")
+            })
+    })
+}
+
 onMounted(() => {
     getData();
 })
@@ -107,28 +217,60 @@ onMounted(() => {
                         </CardDescription>
                     </CardHeader>
                     <CardContent class="overflow-scroll">
+                        <div class="flex flex-col md:flex-row gap-3 mb-4">
+                            <Input v-model="search" placeholder="Search invoice number or charged to..."
+                                   class="md:max-w-sm"/>
+                            <select v-model="statusFilter"
+                                    class="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white">
+                                <option value="">All Status</option>
+                                <option value="draft">Draft</option>
+                                <option value="submitted">Submitted</option>
+                            </select>
+                            <select v-model="categoryFilter"
+                                    class="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white">
+                                <option value="">All Type</option>
+                                <option value="INV">Invoice</option>
+                                <option value="PO">Purchase Order</option>
+                            </select>
+                        </div>
                         <Table class="w-full">
                             <TableHeader>
                                 <TableRow>
                                     <TableHead class="w-1/12 text-center">
                                         No
                                     </TableHead>
-                                    <TableHead class="w-fit">
-                                        Invoice Number
+                                    <TableHead class="w-fit cursor-pointer select-none"
+                                               @click="toggleSort('invoice_number')">
+                                        Invoice Number <span class="text-xs text-gray-400">{{ sortIndicator('invoice_number') }}</span>
                                     </TableHead>
-                                    <TableHead>Charged To</TableHead>
-                                    <TableHead class="text-right">
-                                        Amount
+                                    <TableHead class="cursor-pointer select-none" @click="toggleSort('to')">
+                                        Ditujukan Kepada <span class="text-xs text-gray-400">{{ sortIndicator('to') }}</span>
                                     </TableHead>
-                                    <TableHead class="text-center w-fit">Status</TableHead>
-                                    <TableHead class="text-center w-fit">Created At</TableHead>
+                                    <TableHead class="text-right cursor-pointer select-none"
+                                               @click="toggleSort('total')">
+                                        Amount <span class="text-xs text-gray-400">{{ sortIndicator('total') }}</span>
+                                    </TableHead>
+                                    <TableHead class="text-center w-fit">Paid</TableHead>
+                                    <TableHead class="text-center w-fit cursor-pointer select-none"
+                                               @click="toggleSort('status')">
+                                        Status <span class="text-xs text-gray-400">{{ sortIndicator('status') }}</span>
+                                    </TableHead>
+                                    <TableHead class="text-center w-fit cursor-pointer select-none"
+                                               @click="toggleSort('created_at')">
+                                        Created At <span class="text-xs text-gray-400">{{ sortIndicator('created_at') }}</span>
+                                    </TableHead>
                                     <TableHead class="text-center">
                                         Actions
                                     </TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                <TableRow v-for="(item,index) in dataset" key="item.id">
+                                <TableRow v-if="filteredInvoices.length === 0">
+                                    <TableCell class="text-center" colspan="8">
+                                        No invoices found
+                                    </TableCell>
+                                </TableRow>
+                                <TableRow v-for="(item,index) in filteredInvoices" key="item.id">
                                     <TableCell class="text-center">
                                         {{ index + 1 }}
                                     </TableCell>
@@ -143,10 +285,20 @@ onMounted(() => {
                                         <span v-if="item.paid" class="bg-green-500 text-white px-4 py-1 rounded-full">Paid</span>
                                         <span v-else class="bg-red-500 text-white px-4 py-1 rounded-full">Unpaid</span>
                                     </TableCell>
+                                    <TableCell class="text-center">
+                                        <span v-if="item.status === 'submitted'"
+                                              class="bg-green-500 text-white px-4 py-1 rounded-full">Submitted</span>
+                                        <span v-else class="bg-gray-400 text-white px-4 py-1 rounded-full">Draft</span>
+                                    </TableCell>
                                     <table-cell class="text-center">{{formatDate(item.created_at)}}</table-cell>
                                     <TableCell class="justify-center gap-2 inline-flex w-full ">
                                         <Button  @click="router.get(route('invoices.detail',{id:item.id}))" class="bg-black text-white p-2">
                                             <EyeIcon/>
+                                        </Button>
+                                        <Button v-if="String(item.invoice_number).startsWith('PO') && item.status === 'submitted'"
+                                                @click="generateInvoice(item)" class="bg-blue-500 text-white p-2"
+                                                title="Generate Invoice">
+                                            <FilePlus2/>
                                         </Button>
                                         <Button @click="confirmDelete(item.id)" class="bg-destructive text-white p-2">
                                             <TrashIcon/>
